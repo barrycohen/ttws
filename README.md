@@ -173,6 +173,10 @@ One complication is that, if a puzzle contains multiple end nodes, an area can b
 
 ## Further work 
 
+Capturing puzzles from the screen (using PIL?) and automatically interpreting and solving them.
+
+Support for coloured hexagons, which means coloured paths when symmetry is involved.
+
 It would be good to indicate how far through blue tetris solving (or solving in general) we are, along with an estimate of time remaining.  A user could then decide that 340,000 years was too long to wait.  Alternatively, a faster blue tetris solver would be better!
 
 There is plenty of scope for more heuristics to reduce the search space.  For example, if there are no elimination marks, an invalid triangle or hexagon immediately invalidates an area.
