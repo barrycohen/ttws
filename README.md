@@ -35,7 +35,7 @@ When a puzzle is loaded, the solver will begin immediately.
 
 Puzzle encoding is taken from [The Windmill](https://windmill.thefifthmatt.com/).  If you build a puzzle click on checkpoint, or load a puzzle and click on edit, the long URL string can be pasted into the solver, or loaded from the command-line or from a file.
 
-When a puzzle is pasted into the solver, it is appended to a file called `known_puzzles`, so all pasted puzzles are saved.
+When a puzzle is pasted into the solver, it is appended to a file called `pasted_puzzles`, so all pasted puzzles are saved.
 
 All puzzles from The Windmill as of 9 September 2017 are in a file called `windmill_puzzles` so `python ttws.py -f windmill_puzzles` will begin to load and solve these.  Note that they are not all solvable as some validation rules mismatch.  Also, some will take forever to solve.
 

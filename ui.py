@@ -169,7 +169,7 @@ class UI(object):
             break
 
           # Puzzle is loadable - store it in a file
-          f = open("known_puzzles", "a")
+          f = open("pasted_puzzles", "a")
           f.write(text + "\n")
           f.close()
           self.puzzle_codes.insert(self.current_puzzle+1, text)
