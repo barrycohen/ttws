@@ -169,133 +169,93 @@ class Puzzle(object):
 
   def solve_yellow_tetris(self, area, pieces):
     """
-    Attempt to exactly fit all given tetris pieces into the given area.
-
-    Try to fit each rotation of each piece into the given area by moving the
-    piece over every cell in the area.  As each piece has an anchor point at
-    (0, 0), it will fit somewhere if it's supposed to.  If it fits, recurse with
-    a reduced area and reduced set of pieces.  If there are no pieces left, all
-    pieces were successfully placed.
-
-    This will take a very long time for a large number of pieces or a large
-    area.  Algorithm X (https://en.wikipedia.org/wiki/Knuth%27s_Algorithm_X)
-    would almost certainly be faster, but most of The Witness puzzles are not
-    that big, and we have negative tetris pieces and elimination Y's to deal
-    with too...
+    Attempt to exactly fit all given tetris pieces into the given area using
+    Algorithm X (https://en.wikipedia.org/wiki/Knuth%27s_Algorithm_X).
     """
 
-    if 0:
-      # Solve using recursive placement
+    # Neat Python implementation of Algirthm X:
+    # http://www.cs.mcgill.ca/~aassaf9/python/algorithm_x.html
+    def exact_cover(X, Y, solution=[]):
+        if not X:
+            yield list(solution)
+        else:
+            c = min(X, key=lambda c: len(X[c]))
+            for r in list(X[c]):
+                # Yield to observers
+                self.yield_check()
+                if not self.keep_solving:
+                    yield False
+                solution.append(r)
+                cols = select(X, Y, r)
+                for s in exact_cover(X, Y, solution):
+                    yield s
+                deselect(X, Y, r, cols)
+                solution.pop()
 
-      if len(pieces) == 0:
-        # No pieces left, they all fit
-        return True
+    def select(X, Y, r):
+        cols = []
+        for j in Y[r]:
+            for i in X[j]:
+                for k in Y[i]:
+                    if k != j:
+                        X[k].remove(i)
+            cols.append(X.pop(j))
+        return cols
 
-      for piece in pieces:
-        # Allow observers to do some processing every now and then as this loop
-        # may take a long time
-        self.yield_check()
-        if not self.keep_solving:
-          return False
-        for rotation in piece.shapes:
-          for x, y in area:
-            piece_area = set()
-            for px, py in rotation:
-              cell = (x + px, y + py)
-              if cell in area:
-                piece_area.add(cell)
+    def deselect(X, Y, r, cols):
+        for j in reversed(Y[r]):
+            X[j] = cols.pop()
+            for i in X[j]:
+                for k in Y[i]:
+                    if k != j:
+                        X[k].add(i)
 
-            if len(piece_area) == piece.count:
-              # This piece fits, recurse with this piece removed
-              if self.solve_yellow_tetris(area - piece_area,
-                                          pieces - set([piece])):
-                return True
+    # Solve using Algorithm X
 
-      return False
+    # Add each cell to columns
+    cols = set()
+    for x, y in area:
+      cols.add((x, y))
 
-    else:
-      #http://www.cs.mcgill.ca/~aassaf9/python/algorithm_x.html
-      def exact_cover(X, Y, solution=[]):
-          if not X:
-              yield list(solution)
-          else:
-              c = min(X, key=lambda c: len(X[c]))
-              for r in list(X[c]):
-                  # Yield to observers
-                  self.yield_check()
-                  if not self.keep_solving:
-                      yield False
-                  solution.append(r)
-                  cols = select(X, Y, r)
-                  for s in exact_cover(X, Y, solution):
-                      yield s
-                  deselect(X, Y, r, cols)
-                  solution.pop()
+    # Add each piece to columns
+    for piece in pieces:
+      cols.add(piece)
 
-      def select(X, Y, r):
-          cols = []
-          for j in Y[r]:
-              for i in X[j]:
-                  for k in Y[i]:
-                      if k != j:
-                          X[k].remove(i)
-              cols.append(X.pop(j))
-          return cols
+    # Add a row for every rotation of every piece (if it fits in the area)
+    rows = {}
+    for piece in pieces:
+      for rotation in piece.shapes:
+        for x, y in area:
+          piece_area = set()
+          for px, py in rotation:
+            cell = (x + px, y + py)
+            if cell in area:
+              piece_area.add(cell)
 
-      def deselect(X, Y, r, cols):
-          for j in reversed(Y[r]):
-              X[j] = cols.pop()
-              for i in X[j]:
-                  for k in Y[i]:
-                      if k != j:
-                          X[k].add(i)
+          if len(piece_area) == piece.count:
+            # This rotation fits, add the piece to the row
+            n = (piece, tuple(rotation), (x, y))
+            if n in rows and piece not in rows[n]:
+              rows[n].append(piece)
+            else:
+              rows[n] = [piece]
+            # Also add all cell locations
+            rows[n].extend(piece_area)
 
-      # Solve using Algorithm X
+    cols = {j: set() for j in cols}
+    for i in rows:
+        for j in rows[i]:
+            cols[j].add(i)
 
-      # Add each cell to columns
-      cols = set()
-      for x, y in area:
-        cols.add((x, y))
-
-      # Add each piece to columns
-      for piece in pieces:
-        cols.add(piece)
-
-      # Add a row for every rotation of every piece (if it fits in the area)
-      rows = {}
-      for piece in pieces:
-        for rotation in piece.shapes:
-          for x, y in area:
-            piece_area = set()
-            for px, py in rotation:
-              cell = (x + px, y + py)
-              if cell in area:
-                piece_area.add(cell)
-
-            if len(piece_area) == piece.count:
-              # This rotation fits, add the piece to the row
-              n = (piece, tuple(rotation), (x, y))
-              if n in rows and piece not in rows[n]:
-                rows[n].append(piece)
-              else:
-                rows[n] = [piece]
-              # Also add all cell locations
-              rows[n].extend(piece_area)
-
-      cols = {j: set() for j in cols}
-      for i in rows:
-          for j in rows[i]:
-              cols[j].add(i)
-
-      try:
-        solution = exact_cover(cols, rows).next()
-        if not solution:
-          return False
-        # A solution was found
-        return True
-      except StopIteration:
-        # All possibilities exhausted
+    try:
+      solution = exact_cover(cols, rows).next()
+      if not solution:
         return False
+      # A solution was found
+      return True
+    except StopIteration:
+      # All possibilities exhausted
+      return False
 
 
   def solve_blue_tetris(self, area, pieces):
@@ -419,7 +379,7 @@ class Puzzle(object):
 
   def solve_squares_and_stars(self, area, fixed, remaining_errors):
     """
-    Look through all possible valid combinations of squares and star, taking
+    Look through all possible valid combinations of squares and stars, taking
     fixed pieces (triangles, yellow tetris and blue tetris pieces) into account.
     """
 
@@ -532,7 +492,7 @@ class Puzzle(object):
 
 
   def symmetry_xy(self, x, y):
-    """If this puzzle is symmetrical, return the symmetrical (x, y) node"""
+    """If this puzzle is symmetrical, return the symmetrical (x, y) node."""
     if self.symmetry == SymmetryType.HORIZONTAL:
       return (self.width - x, y)
     elif self.symmetry == SymmetryType.VERTICAL:
@@ -594,7 +554,6 @@ class Puzzle(object):
     self.removed_h_edges = set()
 
     for area in self.areas:
-
       area_valid = True
 
       # Number of errors allowed, i.e. how many eliminations marks there are
@@ -730,16 +689,15 @@ class Puzzle(object):
           if blue_count == 0:
             # Just yellow pieces
 
-            # No yellow or blue pieces, i.e. there are no tetris pieces in this
-            # area
             if yellow_count == 0:
+              # No yellow or blue pieces, i.e. there are no tetris pieces in
+              # this area
               pass
 
             # Make sure the number of tetris cells equals the size of the area
             elif yellow_count != len(area):
               valid_combination = False
 
-            # Attempt to fit every shape into the area
             elif not self.solve_yellow_tetris(area, pieces):
               valid_combination = False
 
@@ -793,15 +751,16 @@ class Puzzle(object):
         if not area_valid:
           break
 
-      # No valid solutions for tetris pieces
+      # No valid solutions
       if not area_valid or not tetris_solved:
         invalid_areas.append(area)
         continue
 
-    if not invalid_areas:
-      return True, None
-    else:
+    if invalid_areas:
       return False, invalid_areas
+
+    # A solution has been found
+    return True, None
 
 
   def yield_check(self):

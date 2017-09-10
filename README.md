@@ -6,10 +6,10 @@ In order to explain how the solver works, the puzzle mechanics will be described
 
 ## Requirements
 
-Written in Python 2.7.  `pygame` is used to draw the puzzle and can be installed with:
+Written in Python 2.7.  `pygame` is used to draw the puzzle.  Google protobuf is used to decode The Windmill puzzles.  These can be installed with:
 
 ```
-pip install pygame
+pip install pygame protobuf
 ```
 
 ## Usage
